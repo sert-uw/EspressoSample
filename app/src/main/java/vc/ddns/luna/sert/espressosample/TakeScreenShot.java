@@ -21,32 +21,36 @@ public class TakeScreenShot {
     private static final String BASE_PATH
             = Environment.getExternalStorageDirectory() + "/AndroidTestSS/";
 
-    private String outputBasePath;
-    private Activity mActivity;
+    public static final String PNG = ".png";
+    public static final String JPG = ".jpg";
+    public static final String BMP = ".bmp";
 
-    public TakeScreenShot(Activity activity) {
-        mActivity = activity;
-
-        outputBasePath = BASE_PATH + activity.getPackageName() + "/";
-
-        File dirs = new File(outputBasePath);
-        if (!dirs.exists())
-            dirs.mkdirs();
+    public static void save(final Activity activity, String fileName, String fileType) {
+        TakeScreenShot.save(activity, null, fileName, fileType);
     }
 
-    public void takeScreenShot(String fileName) {
-        DisplayMetrics dm = mActivity.getResources().getDisplayMetrics();
+    public static void save(final Activity activity, String[] addDirNames, String fileName, String fileType) {
+        String outputBasePath = createBasePath(activity, addDirNames);
+        createDirs(outputBasePath);
 
-        final Bitmap bitmap = Bitmap.createBitmap(
-                dm.widthPixels, dm.heightPixels, Bitmap.Config.ARGB_8888);
-        final File file = new File(fileNameValidation(fileName));
+        String filePath = outputBasePath + fileName + fileType;
 
-        mActivity.runOnUiThread(new Runnable() {
+        TakeScreenShot.save(activity, filePath);
+    }
+
+    private static void save(final Activity activity, final String filePath) {
+        activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 try {
+                    DisplayMetrics dm = activity.getResources().getDisplayMetrics();
+                    File file = new File(filePath);
+
+                    Bitmap bitmap = Bitmap.createBitmap(
+                            dm.widthPixels, dm.heightPixels, Bitmap.Config.ARGB_8888);
+
                     Canvas canvas = new Canvas(bitmap);
-                    mActivity.getWindow().getDecorView().draw(canvas);
+                    activity.getWindow().getDecorView().draw(canvas);
 
                     OutputStream fos = new BufferedOutputStream(
                             new FileOutputStream(file));
@@ -57,7 +61,7 @@ public class TakeScreenShot {
                     String[] paths = {file.getAbsolutePath()};
                     String[] mimeTypes = {"image/png"};
                     MediaScannerConnection.scanFile(
-                            mActivity.getApplicationContext(), paths, mimeTypes, null);
+                            activity.getApplicationContext(), paths, mimeTypes, null);
 
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
@@ -68,15 +72,21 @@ public class TakeScreenShot {
         });
     }
 
-    private String fileNameValidation(String fileName) {
-        String outputName;
+    private static String createBasePath(Activity activity, String[] dirNames) {
+        String createPath = BASE_PATH + activity.getPackageName() + "/";
 
-        if (fileName.indexOf('.') == -1) {
-            outputName = fileName + ".png";
-        } else {
-            outputName = fileName;
+        if (dirNames != null) {
+            for (String dirName : dirNames) {
+                createPath += dirName + "/";
+            }
         }
 
-        return outputBasePath + outputName;
+        return createPath;
+    }
+
+    private static void createDirs(String path) {
+        File dirs = new File(path);
+        if (!dirs.exists())
+            dirs.mkdirs();
     }
 }
